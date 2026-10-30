@@ -1,0 +1,16 @@
+{
+  "revision": "<copy from: kaino listing show --json>",
+  "name": "Healthy Discussion",
+  "slug": "healthy-discussion",
+  "primary_url": "<keep the value from: kaino listing show --json>",
+  "listing_title": "Healthy Discussion",
+  "subtitle": "A buzzer for talking over each other",
+  "short_description": "Listens through your microphone and buzzes when two people talk at once or someone gets too loud. Keeps conversations turn-based and calm.",
+  "long_description": "Healthy Discussion is a live conversation monitor. Put your phone or laptop between you and press Start. It learns the room's quiet level, then watches the conversation: one person speaking at a time shows Healthy Discussion; overlapping voices or shouting trigger a buzzer and an Unhealthy Discussion alert. Tune the silence, overlap and loudness thresholds to your room. Audio is analysed live in your browser and is never recorded or uploaded. Useful for meetings, debates, classrooms and family conversations.",
+  "cover_image_url": "<generate and pick one: kaino artwork generate / artwork pick>",
+  "icon_image_url": "<kaino media upload --kind icon, or kaino artwork generate --kind icon>",
+  "hero_image_url": "",
+  "category": "productivity",
+  "age_rating": "",
+  "screenshots": []
+}

@@ -1,0 +1,20 @@
+{
+  "name": "healthy-discussion",
+  "version": "1.0.0",
+  "description": "Healthy Discussion: a microphone-based turn-taking and volume monitor, hosted on Kainostore.",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "migrate": "node migrate.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "dependencies": {
+    "@kainostore/sdk": "0.1.0-beta.5",
+    "pg": "^8.13.0"
+  },
+  "devDependencies": {
+    "jose": "^6.0.14"
+  }
+}

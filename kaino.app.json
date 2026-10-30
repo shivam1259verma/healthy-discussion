@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developers.kainostore.com/schemas/app-manifest-v1.json",
+  "schemaVersion": 1,
+  "build": { "context": ".", "dockerfile": "Dockerfile" },
+  "runtime": { "port": 3000, "healthPath": "/health" },
+  "database": { "type": "postgres", "migrationCommand": ["node", "migrate.mjs"] },
+  "environment": [
+    { "name": "KAINO_APP_ID", "scope": "runtime", "secret": false, "required": true },
+    { "name": "KAINO_APP_SLUG", "scope": "runtime", "secret": false, "required": false }
+  ]
+}

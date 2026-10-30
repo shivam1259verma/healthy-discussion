@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Healthy Discussion</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #21262d;
+    --text: #e6edf3; --muted: #7d8590;
+    --green: #3fb950; --red: #f85149; --amber: #d29922; --accent: #58a6ff;
+  }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; padding: 28px 16px; gap: 20px;
+  }
+  .eyebrow { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); font-weight: 600; margin-bottom: 8px; }
+  h1 { font-size: clamp(1.8rem,5vw,2.8rem); font-weight: 700; letter-spacing: -.02em; }
+  h1 span { color: var(--green); }
+  .subtitle { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  #statusBanner {
+    width: 100%; max-width: 520px; border-radius: 12px;
+    padding: 16px 20px; display: flex; align-items: center; gap: 14px;
+    border: 1.5px solid var(--border); background: var(--surface); transition: all 0.3s;
+  }
+  #statusBanner.healthy  { border-color: var(--green); background: rgba(63,185,80,0.08);  box-shadow: 0 0 28px rgba(63,185,80,0.12); }
+  #statusBanner.unhealthy{ border-color: var(--red);   background: rgba(248,81,73,0.1);   box-shadow: 0 0 28px rgba(248,81,73,0.2); animation: shake .4s ease; }
+  #statusBanner.listening{ border-color: var(--accent);background: rgba(88,166,255,0.06); }
+  .s-icon  { font-size: 26px; }
+  .s-label { font-weight: 700; font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+  .s-desc  { font-size: 13px; color: var(--muted); margin-top: 2px; }
+
+  #micError {
+    display: none; width: 100%; max-width: 520px;
+    background: rgba(248,81,73,0.1); border: 1px solid var(--red);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--red);
+  }
+  #micError small { color: var(--muted); font-size: 12px; display: block; margin-top: 4px; }
+
+  /* Single combined voice panel */
+  .voice-panel {
+    width: 100%; max-width: 520px; background: var(--surface);
+    border: 1.5px solid var(--border); border-radius: 14px;
+    padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 14px;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .voice-panel.one  { border-color: var(--accent); box-shadow: 0 0 20px rgba(88,166,255,0.1); }
+  .voice-panel.over { border-color: var(--red);    box-shadow: 0 0 24px rgba(248,81,73,0.2); }
+  .voice-panel.loud { border-color: var(--amber);  box-shadow: 0 0 24px rgba(210,153,34,0.2); }
+
+  .avatars { display: flex; gap: 20px; align-items: center; }
+  .avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    border: 2px solid var(--border); display: flex; align-items: center;
+    justify-content: center; font-size: 24px; transition: all .25s;
+  }
+  .avatar.active { border-color: var(--accent); transform: scale(1.12); }
+  .avatar.overlap { border-color: var(--red); transform: scale(1.12); animation: pulse-red 0.7s ease infinite alternate; }
+  .avatar.loud    { border-color: var(--amber); transform: scale(1.12); }
+  .avatar-lbl { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; font-weight: 600; }
+
+  .vs { font-size: 18px; color: var(--border); font-weight: 700; margin-top: -10px; }
+
+  /* Volume / waveform bars */
+  .vol-bars { width: 100%; display: flex; gap: 3px; align-items: flex-end; height: 40px; }
+  .vol-bar  { flex: 1; border-radius: 3px 3px 0 0; background: var(--accent); min-height: 3px; transition: height .06s linear; }
+
+  .vol-track { width: 100%; height: 7px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  .vol-fill  { height: 100%; border-radius: 99px; background: var(--accent); width: 0%; transition: width .08s linear, background .2s; }
+  .vol-fill.speaking { background: var(--green); }
+  .vol-fill.loud     { background: var(--amber); }
+  .vol-fill.overlap  { background: var(--red); }
+
+  .db-row { display: flex; justify-content: space-between; width: 100%; font-family: monospace; font-size: 12px; color: var(--muted); }
+
+  /* Indicators row */
+  .indicators { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .chip {
+    padding: 4px 12px; border-radius: 99px; font-size: 11px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase; border: 1px solid;
+    opacity: 0.3; transition: opacity .2s;
+  }
+  .chip.on { opacity: 1; }
+  .chip-silence  { color: var(--muted);  border-color: var(--muted); }
+  .chip-one      { color: var(--accent); border-color: var(--accent); }
+  .chip-overlap  { color: var(--red);    border-color: var(--red); }
+  .chip-loud     { color: var(--amber);  border-color: var(--amber); }
+
+  /* Settings */
+  .settings {
+    width: 100%; max-width: 520px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .settings-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-weight: 600; }
+  .slider-row { display: flex; align-items: center; gap: 12px; }
+  .slider-row label { font-size: 13px; min-width: 150px; color: var(--text); }
+  input[type=range] { flex: 1; accent-color: var(--accent); cursor: pointer; }
+  .slider-val { font-family: monospace; font-size: 12px; color: var(--accent); min-width: 56px; text-align: right; }
+
+  .btn-row { display: flex; gap: 12px; }
+  button { font-family: inherit; font-size: 15px; font-weight: 700; padding: 12px 32px; border-radius: 8px; border: none; cursor: pointer; transition: transform .1s; }
+  button:active { transform: scale(.97); }
+  #btnStart { background: var(--green); color: #000; }
+  #btnStop  { background: var(--red);   color: #fff; display: none; }
+
+  /* Calibration */
+  #calibBar {
+    display: none; width: 100%; max-width: 520px;
+    background: rgba(88,166,255,0.08); border: 1px solid var(--accent);
+    border-radius: 10px; padding: 12px 16px; font-size: 13px; color: var(--accent);
+    text-align: center;
+  }
+  #calibProgress { height: 4px; background: var(--border); border-radius: 99px; margin-top: 8px; overflow: hidden; }
+  #calibFill     { height: 100%; background: var(--accent); width: 0%; transition: width .1s linear; }
+
+  .log {
+    width: 100%; max-width: 520px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 14px 18px; max-height: 150px; overflow-y: auto;
+  }
+  .log-title { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .12em; font-weight: 600; margin-bottom: 6px; }
+  .log-entry { font-size: 12px; font-family: monospace; display: flex; gap: 10px; color: var(--muted); margin-bottom: 4px; }
+  .log-entry.bad  { color: var(--red); }
+  .log-entry.good { color: var(--green); }
+  .log-entry.warn { color: var(--amber); }
+  .ts { color: #3c4450; }
+
+  #flash { position: fixed; inset: 0; background: rgba(248,81,73,0.28); pointer-events: none; z-index: 999; opacity: 0; }
+  #flash.show { animation: fadeout .5s ease forwards; }
+
+  @keyframes shake   { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-5px)} 40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 80%{transform:translateX(3px)} }
+  @keyframes fadeout { 0%{opacity:1} 100%{opacity:0} }
+  @keyframes pulse-red { from{box-shadow:0 0 0 0 rgba(248,81,73,0.5)} to{box-shadow:0 0 0 8px rgba(248,81,73,0)} }
+  @media(max-width:480px){ .slider-row{flex-wrap:wrap} .slider-row label{min-width:100%} }
+
+  #sessionBar { width:100%; max-width:520px; display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted); }
+  #sessionBar[hidden], #sessionExpired[hidden] { display:none; }
+  #btnSignOut { background:transparent; color:var(--muted); border:1px solid var(--border); padding:4px 12px; font-size:12px; font-weight:600; }
+  #sessionExpired { width:100%; max-width:520px; background:rgba(210,153,34,0.1); border:1px solid var(--amber); border-radius:10px; padding:12px 16px; font-size:13px; color:var(--amber); }
+  #sessionExpired a { color:var(--accent); }
+</style>
+</head>
+<body>
+
+<div id="flash"></div>
+
+<div id="sessionBar" hidden>
+  <span id="sessionText">Signed in with Kainostore</span>
+  <button id="btnSignOut" type="button">Sign out</button>
+</div>
+<div id="sessionExpired" hidden>
+  Your Kainostore session ended. <a id="relaunchLink" href="#">Launch again from Kainostore</a> to keep going.
+</div>
+
+
+<header style="text-align:center">
+  <div class="eyebrow">Conversation Monitor</div>
+  <h1><span>Healthy</span> Discussion</h1>
+  <p class="subtitle">One mic · detects overlap &amp; shouting automatically</p>
+</header>
+
+<div id="statusBanner">
+  <div class="s-icon" id="sIcon">🎙️</div>
+  <div>
+    <div class="s-label" id="sLabel" style="color:var(--muted)">WAITING</div>
+    <div class="s-desc"  id="sDesc">Press Start to begin monitoring</div>
+  </div>
+</div>
+
+<div id="micError">
+  ⚠️ Microphone error: <span id="micErrorMsg"></span>
+  <small>Allow microphone in browser settings and open via HTTPS or localhost.</small>
+</div>
+
+<div id="calibBar">
+  🎙️ Calibrating silence baseline… please stay quiet
+  <div id="calibProgress"><div id="calibFill"></div></div>
+</div>
+
+<!-- Single combined voice panel -->
+<div class="voice-panel" id="voicePanel">
+
+  <div class="avatars">
+    <div class="avatar-wrap">
+      <div class="avatar" id="avatarA">🧑</div>
+      <div class="avatar-lbl">Speaker A</div>
+    </div>
+    <div class="vs">vs</div>
+    <div class="avatar-wrap">
+      <div class="avatar" id="avatarB">🧑</div>
+      <div class="avatar-lbl">Speaker B</div>
+    </div>
+  </div>
+
+  <!-- Live waveform bars -->
+  <div class="vol-bars" id="volBars"></div>
+
+  <!-- Combined volume fill -->
+  <div class="vol-track"><div class="vol-fill" id="volFill"></div></div>
+  <div class="db-row">
+    <span id="dbNow">-- dB</span>
+    <span id="dbBase" style="color:#3c4450">baseline: -- dB</span>
+  </div>
+
+  <!-- State chips -->
+  <div class="indicators">
+    <div class="chip chip-silence" id="chipSilence">Silence</div>
+    <div class="chip chip-one"     id="chipOne">1 Speaker</div>
+    <div class="chip chip-overlap" id="chipOverlap">Overlap!</div>
+    <div class="chip chip-loud"    id="chipLoud">Too Loud!</div>
+  </div>
+</div>
+
+<!-- Settings -->
+<div class="settings">
+  <div class="settings-title">Settings</div>
+  <div class="slider-row">
+    <label>Silence threshold</label>
+    <input type="range" id="silThresh" min="-80" max="-30" value="-55" step="1">
+    <span class="slider-val" id="silThreshVal">-55 dB</span>
+  </div>
+  <div class="slider-row">
+    <label>Overlap jump (dB rise)</label>
+    <input type="range" id="jumpThresh" min="3" max="20" value="8" step="1">
+    <span class="slider-val" id="jumpThreshVal">+8 dB</span>
+  </div>
+  <div class="slider-row">
+    <label>Loud / shouting</label>
+    <input type="range" id="loudThresh" min="-30" max="0" value="-10" step="1">
+    <span class="slider-val" id="loudThreshVal">-10 dB</span>
+  </div>
+  <div class="slider-row">
+    <label>Overlap hold (ms)</label>
+    <input type="range" id="holdMs" min="200" max="1500" value="500" step="100">
+    <span class="slider-val" id="holdMsVal">500 ms</span>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button id="btnStart">▶ Start</button>
+  <button id="btnStop">■ Stop</button>
+</div>
+
+<div class="log" id="logEl">
+  <div class="log-title">Event Log</div>
+</div>
+
+<script src="/assets/app.js"></script>
+<script src="/assets/session.js"></script>
+</body>
+</html>
